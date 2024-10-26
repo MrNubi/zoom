@@ -23,11 +23,20 @@ console.log("hello");
 
 const handleListen = () => console.log("Listening on http://localhost:3000");
 const handleListenWs = () => console.log("Listening on ws://localhost:3000");
+function handleWs () {
+    console.log(socket);
+
+}
 
 // 같은 포트위에서 웹소켓 서버와 http서버를 동시에 돌리기 위해 작성 
 // 
 const server = http.createServer(app);
 
 const wss = new WebSocket.Server({server})
+
+//webSocket은 이벤트를 받아서 처리하는 식, event의 종류에 주의할 것
+// 콜백으로 받는 socket은 연결된 브라우저와의 연결라인
+// on method 는 연결된 브라우저의 정보를 socket을 통해 제공
+wss.on("connection", handleWs)
 
 server.listen(3000,handleListen);
