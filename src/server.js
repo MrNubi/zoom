@@ -31,22 +31,33 @@ const server = http.createServer(app);
 
 const wss = new WebSocket.Server({server})
 
+// 연결 시 연결자들의 집합
+const sockets = []
+
+
 //webSocket은 이벤트를 받아서 처리하는 식, event의 종류에 주의할 것
 // 콜백으로 받는 socket은 연결된 브라우저와의 연결라인
 // on method 는 연결된 브라우저의 정보를 socket을 통해 제공
 
-const onSocketMessage = (e)=>{
-    console.log(e.toString('utf-8'))
-}
+
 
 wss.on("connection", (socket) => {
-   console.log("클라이언트와 연결");
+  
+    //sockets.push({id:"", socket:socket});
+    sockets.push(socket);
+    console.log("클라이언트와 연결");
     // socket 안의 메서드로 클라이언트에 메세지 전송
    socket.send("hello");
    socket.on("close",()=>{
     console.log("연결꺼짐")
    })
-   socket.on("message",onSocketMessage)
+   socket.on("message",(e)=>{
+    const msg =e.toString('utf-8')
+    console.log(msg)
+
+    sockets.forEach((userSocket)=>userSocket.send(msg))
+    socket.send(msg)
+})
 
 })
 
