@@ -1,32 +1,92 @@
-const msgList   = document.querySelector("ul");
-const msgForm = document.querySelector("form");
-const socket = new WebSocket(`ws://${window.location.host}`)
+const socket = io();
+const myFace   = document.getElementById("myFace");
+const muteBtn    = document.getElementById("mute");
+const cameraBtn = document.getElementById("camera");
+const camerasSelect = document.getElementById("cameras");
 
-/**
- * @param {SubmitEvent} message - 제출 이벤트
- */
-function handleSubmit(message){
-    message.preventDefault();
-    const input = msgForm.querySelector("input");
-    console.log(input.value)
-    socket.send(input.value)
-    input.value=""
+
+let myStream;
+let muted = false
+let cameraOff =false
+
+function handleMuteBtn(){
+    myStream.getAudioTracks().forEach((track) => (track.enabled = !track.enabled));
+    if(!muted){
+        muteBtn.innerText="Unmute"
+        muted = true
+    }else{
+         muteBtn.innerText="Mute"
+         muted = false
+
+    }
+}
+function handleCameraBtn(){
+    myStream.getVideoTracks().forEach((track) => (track.enabled = !track.enabled));
+    if(!cameraOff){
+        cameraBtn.innerText="Turn Camera Off"
+        cameraOff=true
+
+    }else{
+         cameraBtn.innerText="Turn Camera On"
+         cameraOff =false
+    }
+}
+async function handleCameraChange(){
+    // myStream.getVideoTracks().forEach((track) => (track.enabled = !track.enabled));
+    // if(!cameraOff){
+    //     cameraBtn.innerText="Turn Camera Off"
+    //     cameraOff=true
+
+    // }else{
+    //      cameraBtn.innerText="Turn Camera On"
+    //      cameraOff =false
+    // }
+    await getMedia(camerasSelect.value)
 }
 
+async function getMedia(devId){
+    const initialConstraints = {
+        audio : true,
+        video : { facingMode : "user"}
+    };
+    const cameraConstraints = {
+        audio : true,
+        video : {deviceId : { exact : devId}}
+    };
 
+    try{
+        myStream = await navigator.mediaDevices.getUserMedia( devId? cameraConstraints: initialConstraints)
+        myFace.srcObject = myStream
+        if(!devId){
+            await getCamera();            
+        }
+        await getCamera();
+    }catch(e){
+        console.log(e)
+    }
+}
 
+async function getCamera(){
+ try{
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter(dev => dev.kind === "videoinput") 
+    const curCam = myStream.getVideoTracks()[0];
+    cameras.forEach(cam => {
+        const option = document.createElement("option")
+        option.value = cam.deviceId
+        option.innerText = cam.label
+        if(curCam.label === cam.label){
+            option.selected = true
+        }
+        camerasSelect.append(option)
+    })
+    console.log("dev : ",devices)
+ }catch(e){
+    console.log(e)
+ }
+}
 
-socket.addEventListener("open", (e)=>{
-  console.log("connect to server  :  ", e)
-})
-socket.addEventListener("message", (e)=>{
-    console.log("msg, ",e.data)
-})
-socket.addEventListener("close", (e)=>{
-    console.log("close",e)
-})
-//setTimeout(()=>socket.send("브라우저 메세지"),100)
-
-
-
-msgForm.addEventListener("submit",handleSubmit)
+getMedia()
+  muteBtn.addEventListener("click", ()=>handleMuteBtn())
+cameraBtn.addEventListener("click", ()=>handleCameraBtn())
+camerasSelect.addEventListener("input", ()=>handleCameraChange())
